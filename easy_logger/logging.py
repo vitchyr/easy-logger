@@ -320,6 +320,3 @@ class Logger(object):
                 pass
             else:
                 raise NotImplementedError
-
-
-logger = Logger()
