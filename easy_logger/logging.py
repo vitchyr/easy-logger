@@ -67,7 +67,15 @@ class MyEncoder(json.JSONEncoder):
             return {
                 '$function': o.__module__ + "." + o.__name__
             }
-        return json.JSONEncoder.default(self, o)
+        try:
+            return json.JSONEncoder.default(self, o)
+        except TypeError as e:
+            if isinstance(o, object):
+                return {
+                    '$object': str(o)
+                }
+            else:
+                raise e
 
 
 def mkdir_p(path):
