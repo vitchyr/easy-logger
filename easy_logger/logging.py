@@ -15,22 +15,9 @@ import csv
 import json
 import pickle
 import errno
-from collections import OrderedDict
 
 from easy_logger.tabulate import tabulate
-
-
-def add_prefix(log_dict: OrderedDict, prefix: str):
-    with_prefix = OrderedDict()
-    for key, val in log_dict.items():
-        with_prefix[prefix + key] = val
-    return with_prefix
-
-
-def append_log(log_dict, to_add_dict, prefix=None):
-    if prefix is not None:
-        to_add_dict = add_prefix(to_add_dict, prefix=prefix)
-    return log_dict.update(to_add_dict)
+from easy_logger import git
 
 
 class TerminalTablePrinter(object):
@@ -78,16 +65,6 @@ class MyEncoder(json.JSONEncoder):
                 raise e
 
 
-def mkdir_p(path):
-    try:
-        os.makedirs(path)
-    except OSError as exc:  # Python >2.5
-        if exc.errno == errno.EEXIST and os.path.isdir(path):
-            pass
-        else:
-            raise
-
-
 class Logger(object):
     def __init__(self):
         self._prefixes = []
@@ -119,7 +96,7 @@ class Logger(object):
 
     def _add_output(self, file_name, arr, fds, mode='a'):
         if file_name not in arr:
-            mkdir_p(os.path.dirname(file_name))
+            _mkdir_p(os.path.dirname(file_name))
             arr.append(file_name)
             fds[file_name] = open(file_name, mode)
 
@@ -249,7 +226,7 @@ class Logger(object):
         self.pop_tabular_prefix()
 
     def log_variant(self, log_file, variant_data):
-        mkdir_p(os.path.dirname(log_file))
+        _mkdir_p(os.path.dirname(log_file))
         with open(log_file, "w") as f:
             json.dump(variant_data, f, indent=2, sort_keys=True, cls=MyEncoder)
 
@@ -328,3 +305,23 @@ class Logger(object):
                 pass
             else:
                 raise NotImplementedError
+
+    def save_main_script(self, save_file='script_name.txt'):
+        import __main__ as main
+        script_name = main.__file__
+        with open(osp.join(self._snapshot_dir, save_file), "w") as f:
+            f.write(script_name)
+
+    def save_git_snapshot(self, directories):
+        git_infos = git.generate_git_infos(directories)
+        git.save_git_infos(git_infos, self._snapshot_dir)
+
+
+def _mkdir_p(path):
+    try:
+        os.makedirs(path)
+    except OSError as exc:  # Python >2.5
+        if exc.errno == errno.EEXIST and os.path.isdir(path):
+            pass
+        else:
+            raise
